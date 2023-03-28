@@ -1,5 +1,11 @@
+#-----------------------------------------------------------
+# Configuration
+
 # Default to "build" target
 .DEFAULT_GOAL := build-clean
+
+#-----------------------------------------------------------
+# File enumeration
 
 # Use "find" to enumerate all directories and files under "content/" (excluding "content/" itself)
 INPUT_FILES := $(shell find content -type f)
@@ -12,6 +18,9 @@ OUTPUT_DIRECTORIES := $(patsubst content/%,out/%,$(INPUT_DIRECTORIES))
 # Extraneous files already present in "out/"
 EXTRANEOUS_OUTPUT_FILES := $(filter-out $(OUTPUT_FILES),$(shell find out -type f))
 
+#-----------------------------------------------------------
+# Build rules
+
 # Rule to recreate "content/" directory structure under "out/"
 $(OUTPUT_DIRECTORIES):
 	mkdir -p $@
@@ -19,6 +28,9 @@ $(OUTPUT_DIRECTORIES):
 # Copy all files verbatim (and use order-only prerequisites to ensure directories exist first)
 out/%: content/% | $(OUTPUT_DIRECTORIES)
 	cp -f $< $@
+
+#-----------------------------------------------------------
+# Build "commands" (phony targets)
 
 # Build
 .PHONY: build
