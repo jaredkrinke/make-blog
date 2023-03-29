@@ -25,8 +25,8 @@ INTERMEDIATE_DIRECTORIES := $(patsubst content/%,cache/%,$(INPUT_DIRECTORIES))
 # Replace "content/" with "out/"
 OUTPUT_FILES_POSTS := $(patsubst content/%,out/%,$(INPUT_FILES_POSTS))
 OUTPUT_FILES_VERBATIM := $(patsubst content/%,out/%,$(INPUT_FILES_VERBATIM))
-# TODO: CSS, 404, index, archive, tag indexes
-OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM)
+# TODO: CSS, 404, archive, tag indexes
+OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM) out/index.html
 OUTPUT_DIRECTORIES := $(patsubst content/%,out/%,$(INPUT_DIRECTORIES))
 
 # Extraneous files already present in "out/"
@@ -44,8 +44,15 @@ cache/posts/%.metadata.json cache/posts/%.content.md &: content/posts/%.md | $(I
 	head $< > cache/posts/$*.metadata.json
 	tail $< > cache/posts/$*.content.md
 
+cache/index.db.json: cache/posts
+	find cache/posts -type f > $@
+
 $(OUTPUT_FILES_POSTS): out/posts/%.md: cache/posts/%.metadata.json cache/posts/%.content.md content/site.json | $(OUTPUT_DIRECTORIES)
 	cat cache/posts/$*.metadata.json cache/posts/$*.content.md > $@
+
+# Generate indexes
+out/index.html: cache/index.db.json
+	cat $< > $@
 
 # Copy verbatim (and use order-only prerequisites to ensure directories exist first)
 $(OUTPUT_FILES_VERBATIM): out/%: content/% | $(OUTPUT_DIRECTORIES)
@@ -55,6 +62,7 @@ $(OUTPUT_FILES_VERBATIM): out/%: content/% | $(OUTPUT_DIRECTORIES)
 # Build "commands" (phony targets)
 
 # Build
+# TODO: Probably need to always tidy first to avoid aggregating zombie items...
 .PHONY: build
 build: $(OUTPUT_FILES) $(OUTPUT_DIRECTORIES)
 
