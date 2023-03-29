@@ -40,11 +40,9 @@ $(OUTPUT_DIRECTORIES): ; mkdir -p $@
 $(INTERMEDIATE_DIRECTORIES): ; mkdir -p $@
 
 # Parse and process posts
-cache/posts/%.metadata.json: content/posts/%.md | $(INTERMEDIATE_DIRECTORIES)
-	head $< > $@
-
-cache/posts/%.content.md: content/posts/%.md | $(INTERMEDIATE_DIRECTORIES)
-	tail $< > $@
+cache/posts/%.metadata.json cache/posts/%.content.md &: content/posts/%.md | $(INTERMEDIATE_DIRECTORIES)
+	head $< > cache/posts/$*.metadata.json
+	tail $< > cache/posts/$*.content.md
 
 $(OUTPUT_FILES_POSTS): out/posts/%.md: cache/posts/%.metadata.json cache/posts/%.content.md content/site.json | $(OUTPUT_DIRECTORIES)
 	cat cache/posts/$*.metadata.json cache/posts/$*.content.md > $@
