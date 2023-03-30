@@ -18,15 +18,13 @@ INPUT_FILES_POSTS := $(filter content/posts/%.md,$(INPUT_FILES))
 INPUT_FILES_VERBATIM := $(filter-out $(INPUT_FILES_SITE_JSON) $(INPUT_FILES_POSTS),$(INPUT_FILES))
 
 # Intermediate results
-#INTERMEDIATE_POST_METADATA := $(patsubst content/posts/%.md,cache/posts/%.metadata.json,$(INPUT_FILES_POSTS))
-#INTERMEDIATE_POST_MARKDOWN := $(patsubst content/posts/%.md,cache/posts/%.content.md,$(INPUT_FILES_POSTS))
 INTERMEDIATE_DIRECTORIES := $(patsubst content/%,cache/%,$(INPUT_DIRECTORIES))
 
 # Replace "content/" with "out/"
-OUTPUT_FILES_POSTS := $(patsubst content/%,out/%,$(INPUT_FILES_POSTS))
+OUTPUT_FILES_POSTS := $(addsuffix .html,$(basename $(patsubst content/%,out/%,$(INPUT_FILES_POSTS))))
 OUTPUT_FILES_VERBATIM := $(patsubst content/%,out/%,$(INPUT_FILES_VERBATIM))
 # TODO: CSS, 404, archive, tag indexes
-OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM) out/index.html
+OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM) #TODO: out/index.html
 OUTPUT_DIRECTORIES := $(patsubst content/%,out/%,$(INPUT_DIRECTORIES))
 
 # Extraneous files already present in "out/"
@@ -43,15 +41,18 @@ $(INTERMEDIATE_DIRECTORIES): ; mkdir -p $@
 cache/posts/%.metadata.json cache/posts/%.content.md &: content/posts/%.md | $(INTERMEDIATE_DIRECTORIES)
 	deno run --allow-read=content --allow-write=cache process.ts frontmatter $< cache/posts/$*.metadata.json cache/posts/$*.content.md
 
-cache/index.db.json: cache/posts
-	find cache/posts -type f > $@
+cache/posts/%.content.html: cache/posts/%.content.md
+	deno run --allow-read=cache --allow-write=cache process.ts markdown $< $@
 
-$(OUTPUT_FILES_POSTS): out/posts/%.md: cache/posts/%.metadata.json cache/posts/%.content.md content/site.json | $(OUTPUT_DIRECTORIES)
-	cat cache/posts/$*.metadata.json cache/posts/$*.content.md > $@
+# cache/index.db.json: cache/posts
+# 	find cache/posts -type f > $@
+
+$(OUTPUT_FILES_POSTS): out/posts/%.html: cache/posts/%.metadata.json cache/posts/%.content.html content/site.json | $(OUTPUT_DIRECTORIES)
+	cat cache/posts/$*.metadata.json cache/posts/$*.content.html > $@
 
 # Generate indexes
-out/index.html: cache/index.db.json
-	cat $< > $@
+# out/index.html: cache/index.db.json
+# 	cat $< > $@
 
 # Copy verbatim (and use order-only prerequisites to ensure directories exist first)
 $(OUTPUT_FILES_VERBATIM): out/%: content/% | $(OUTPUT_DIRECTORIES)
