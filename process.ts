@@ -1,7 +1,8 @@
 import { parse } from "https://deno.land/std@0.178.0/encoding/yaml.ts";
 
 const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
-	split: async (paths) => {
+	// Separate and parse YAML front matter
+	frontmatter: async (paths) => {
 		const frontMatterPattern = /^---\r?\n(.*?)\r?\n---(\r?\n|$)/ms;
 		const [pathInput, pathOutputMetadata, pathOutputContent] = paths;
 		const text = await Deno.readTextFile(pathInput);

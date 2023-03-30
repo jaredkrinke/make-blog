@@ -41,8 +41,7 @@ $(INTERMEDIATE_DIRECTORIES): ; mkdir -p $@
 
 # Parse and process posts
 cache/posts/%.metadata.json cache/posts/%.content.md &: content/posts/%.md | $(INTERMEDIATE_DIRECTORIES)
-	head $< > cache/posts/$*.metadata.json
-	tail $< > cache/posts/$*.content.md
+	deno run --allow-read=content --allow-write=cache process.ts frontmatter $< cache/posts/$*.metadata.json cache/posts/$*.content.md
 
 cache/index.db.json: cache/posts
 	find cache/posts -type f > $@
