@@ -18,6 +18,12 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 		const metadata = hasFrontMatter ? parse(matches[1]) : {};
 		const content = hasFrontMatter ? text.slice(matches[0].length) : text;
 
+		// Add post category as an implicit tag
+		const pathComponents = pathInput.split("/");
+		if (pathComponents.length >= 3 && pathComponents[pathComponents.length - 3] === "posts") {
+			metadata.tags = [pathComponents[pathComponents.length - 2]].concat((metadata?.keywords ?? []));
+		}
+
 		await Deno.writeTextFile(pathOutputMetadata, JSON.stringify(metadata));
 		await Deno.writeTextFile(pathOutputContent, content);
 	},
