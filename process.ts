@@ -1,7 +1,8 @@
 // TODO: Performance: split into separate modules or use a persistent server process, if needed
 
 import { parse } from "https://deno.land/std@0.178.0/encoding/yaml.ts";
-import { marked, Renderer } from "./deps/marked.esm.js";
+import { marked, Renderer } from "./goldsmith/plugins/markdown/deps/marked.esm.js";
+import { templates } from "./md2blog/templates.ts";
 
 function replaceLink(link: string) {
     return link.replace(/^([^/][^:]*)\.md(#[^#]+)?$/, "$1.html$2")
@@ -58,12 +59,14 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 
 		const metadata = {
 			...postMetadata,
+			date: new Date(postMetadata["date"]),
 			site: siteMetadata,
 			isRoot: false,
 			pathToRoot: "../../",
 		};
 
-		const output = JSON.stringify(metadata, undefined, 4);
+		const template = templates["post"];
+		const output = template(postHtml, metadata);
 		await Deno.writeTextFile(pathOutput, output);
 	},
 } as const;

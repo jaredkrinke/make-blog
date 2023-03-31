@@ -1,0 +1,6 @@
+[submodule "md2blog"]
+	path = md2blog
+	url = https://github.com/jaredkrinke/md2blog.git
+[submodule "goldsmith"]
+	path = goldsmith
+	url = https://github.com/jaredkrinke/goldsmith.git
