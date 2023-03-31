@@ -11,11 +11,11 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 	// Separate and parse YAML front matter
 	frontmatter: async (paths) => {
 		const frontMatterPattern = /^---\r?\n(.*?)\r?\n---(\r?\n|$)/ms;
-		const [pathInput, pathOutputMetadata, pathOutputContent] = paths;
+		const [pathInput, pathFromRoot, pathOutputMetadata, pathOutputContent] = paths;
 		const text = await Deno.readTextFile(pathInput);
 		const matches = frontMatterPattern.exec(text);
 		const hasFrontMatter = !!matches;
-		const metadata = hasFrontMatter ? parse(matches[1]) : {};
+		const metadata = (hasFrontMatter ? parse(matches[1]) : {}) as Record<string, any>;
 		const content = hasFrontMatter ? text.slice(matches[0].length) : text;
 
 		// Add post category as an implicit tag
@@ -23,6 +23,8 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 		if (pathComponents.length >= 3 && pathComponents[pathComponents.length - 3] === "posts") {
 			metadata.tags = [pathComponents[pathComponents.length - 2]].concat((metadata?.keywords ?? []));
 		}
+
+		metadata.pathFromRoot = pathFromRoot;
 
 		await Deno.writeTextFile(pathOutputMetadata, JSON.stringify(metadata));
 		await Deno.writeTextFile(pathOutputContent, content);
@@ -45,6 +47,23 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 
 		// Transform Markdown to HTML
 		const output = marked(input);
+		await Deno.writeTextFile(pathOutput, output);
+	},
+
+	"template-post": async (paths) => {
+		const [pathSiteJson, pathPostMetadata, pathPostHtml, pathOutput] = paths;
+		const siteMetadata = JSON.parse(await Deno.readTextFile(pathSiteJson));
+		const postMetadata = JSON.parse(await Deno.readTextFile(pathPostMetadata));
+		const postHtml = await Deno.readTextFile(pathPostHtml);
+
+		const metadata = {
+			...postMetadata,
+			site: siteMetadata,
+			isRoot: false,
+			pathToRoot: "../../",
+		};
+
+		const output = JSON.stringify(metadata, undefined, 4);
 		await Deno.writeTextFile(pathOutput, output);
 	},
 } as const;

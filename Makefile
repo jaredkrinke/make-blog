@@ -39,7 +39,7 @@ $(INTERMEDIATE_DIRECTORIES): ; mkdir -p $@
 
 # Parse and process posts
 cache/posts/%.metadata.json cache/posts/%.content.md &: content/posts/%.md | $(INTERMEDIATE_DIRECTORIES)
-	deno run --allow-read=content --allow-write=cache process.ts frontmatter $< cache/posts/$*.metadata.json cache/posts/$*.content.md
+	deno run --allow-read=content --allow-write=cache process.ts frontmatter $< posts/$*.html cache/posts/$*.metadata.json cache/posts/$*.content.md
 
 cache/posts/%.content.html: cache/posts/%.content.md
 	deno run --allow-read=cache --allow-write=cache process.ts markdown $< $@
@@ -48,7 +48,7 @@ cache/posts/%.content.html: cache/posts/%.content.md
 # 	find cache/posts -type f > $@
 
 $(OUTPUT_FILES_POSTS): out/posts/%.html: cache/posts/%.metadata.json cache/posts/%.content.html content/site.json | $(OUTPUT_DIRECTORIES)
-	cat cache/posts/$*.metadata.json cache/posts/$*.content.html > $@
+	deno run --allow-read=content,cache --allow-write=out process.ts template-post content/site.json cache/posts/$*.metadata.json cache/posts/$*.content.html $@
 
 # Generate indexes
 # out/index.html: cache/index.db.json
