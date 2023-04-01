@@ -31,13 +31,15 @@ INTERMEDIATE_FILES_EXTRANEOUS := $(filter-out $(INTERMEDIATE_FILES),$(shell mkdi
 
 # Output (under "out/")
 OUTPUT_DIRECTORIES := $(patsubst content/%,out/%,$(INPUT_DIRECTORIES))
+OUTPUT_DIRECTORIES_POSTS := $(patsubst content/%,out/%,$(INPUT_DIRECTORIES_POSTS))
 
 OUTPUT_FILES_POSTS := $(addsuffix .html,$(basename $(patsubst content/%,out/%,$(INPUT_FILES_POSTS))))
 OUTPUT_FILES_VERBATIM := $(patsubst content/%,out/%,$(INPUT_FILES_VERBATIM))
-OUTPUT_FILES_TAG_INDEXES := $(addsuffix /index.html,$(INPUT_DIRECTORIES_POSTS))
+OUTPUT_FILES_TAG_INDEXES := $(addsuffix index.html,$(OUTPUT_DIRECTORIES_POSTS))
 OUTPUT_FILES_FIXED := out/archive.html out/index.html
 
 OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM) $(OUTPUT_FILES_FIXED) $(OUTPUT_FILES_TAG_INDEXES)
+# TODO: This is flawed, thanks to tag indexes for keywords that don't map to category directories
 OUTPUT_FILES_EXTRANEOUS := $(filter-out $(OUTPUT_FILES),$(shell mkdir -p out && find out -type f))
 
 # Tidy up "cache/" and "out/" before building anything (note the shell hacks above create those directories, and this next one to delete unexpected files)
