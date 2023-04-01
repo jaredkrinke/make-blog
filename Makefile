@@ -39,8 +39,12 @@ OUTPUT_FILES_TAG_INDEXES := $(addsuffix index.html,$(OUTPUT_DIRECTORIES_POSTS))
 OUTPUT_FILES_FIXED := out/archive.html out/index.html
 
 OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM) $(OUTPUT_FILES_FIXED) $(OUTPUT_FILES_TAG_INDEXES)
-# TODO: This is flawed, thanks to tag indexes for keywords that don't map to category directories
-OUTPUT_FILES_EXTRANEOUS := $(filter-out $(OUTPUT_FILES),$(shell mkdir -p out && find out -type f))
+
+# Note the following flawed hack: tag index pages might be added by a keyword that doesn't map to a category directory,
+# so leave tag index pages alone here. This will fail if a tag is removed, along with an associated post because the
+# tag index page will be left in place, but the post will no longer exist.
+
+OUTPUT_FILES_EXTRANEOUS := $(filter-out $(OUTPUT_FILES) out/posts/%/index.html,$(shell mkdir -p out && find out -type f))
 
 # Tidy up "cache/" and "out/" before building anything (note the shell hacks above create those directories, and this next one to delete unexpected files)
 TIDY_RESULT := $(shell rm -f $(OUTPUT_FILES_EXTRANEOUS) $(INTERMEDIATE_FILES_EXTRANEOUS))
