@@ -2,7 +2,7 @@
 # Configuration
 
 # Default to "build" target
-.DEFAULT_GOAL := build-clean
+.DEFAULT_GOAL := build
 
 #-----------------------------------------------------------
 # File enumeration
@@ -16,30 +16,40 @@ INPUT_FILES_SITE_JSON := $(filter content/site.json,$(INPUT_FILES))
 INPUT_FILES_POSTS := $(filter content/posts/%.md,$(INPUT_FILES))
 INPUT_FILES_VERBATIM := $(filter-out $(INPUT_FILES_SITE_JSON) $(INPUT_FILES_POSTS),$(INPUT_FILES))
 
-# Intermediate results
+# Intermediate results (under "cache/")
 INTERMEDIATE_DIRECTORIES := $(patsubst content/%,cache/%,$(INPUT_DIRECTORIES))
 
-# Replace "content/" with "out/"
-OUTPUT_FILES_POSTS := $(addsuffix .html,$(basename $(patsubst content/%,out/%,$(INPUT_FILES_POSTS))))
-OUTPUT_FILES_VERBATIM := $(patsubst content/%,out/%,$(INPUT_FILES_VERBATIM))
-OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM)
+INTERMEDIATE_FILES_POST_METADATA := $(patsubst content/posts/%.md,cache/posts/%.metadata.json,$(INPUT_FILES_POSTS))
+INTERMEDIATE_FILES_POST_CONTENT := $(patsubst content/posts/%.md,cache/posts/%.content.md,$(INPUT_FILES_POSTS))
+INTERMEDIATE_FILES_POST_HTML := $(patsubst content/posts/%.md,cache/posts/%.content.html,$(INPUT_FILES_POSTS))
+
+INTERMEDIATE_FILES := $(INTERMEDIATE_FILES_POST_METADATA) $(INTERMEDIATE_FILES_POST_CONTENT) $(INTERMEDIATE_FILES_POST_HTML)
+INTERMEDIATE_FILES_EXTRANEOUS := $(filter-out $(INTERMEDIATE_FILES),$(shell mkdir -p cache && find cache -type f))
+
+# Output (under "out/")
 OUTPUT_DIRECTORIES := $(patsubst content/%,out/%,$(INPUT_DIRECTORIES))
 
-# Extraneous files already present in "out/"
-OUTPUT_FILES_EXTRANEOUS := $(filter-out $(OUTPUT_FILES),$(shell find out -type f))
+OUTPUT_FILES_POSTS := $(addsuffix .html,$(basename $(patsubst content/%,out/%,$(INPUT_FILES_POSTS))))
+OUTPUT_FILES_VERBATIM := $(patsubst content/%,out/%,$(INPUT_FILES_VERBATIM))
+
+OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM)
+OUTPUT_FILES_EXTRANEOUS := $(filter-out $(OUTPUT_FILES),$(shell mkdir -p out && find out -type f))
 
 #-----------------------------------------------------------
 # Build rules
 
 # Rules to recreate "content/" directory structure under "cache/" and "out/"
-$(OUTPUT_DIRECTORIES): ; mkdir -p $@
-$(INTERMEDIATE_DIRECTORIES): ; mkdir -p $@
+$(OUTPUT_DIRECTORIES): tidy
+	mkdir -p $@
+
+$(INTERMEDIATE_DIRECTORIES): tidy
+	mkdir -p $@
 
 # Parse and process posts
 cache/posts/%.metadata.json cache/posts/%.content.md &: content/posts/%.md | $(INTERMEDIATE_DIRECTORIES)
 	deno run --allow-read=content --allow-write=cache process.ts frontmatter $< posts/$*.html cache/posts/$*.metadata.json cache/posts/$*.content.md
 
-cache/posts/%.content.html: cache/posts/%.content.md
+$(INTERMEDIATE_FILES_POST_HTML): cache/posts/%.content.html: cache/posts/%.content.md
 	deno run --allow-read=cache --allow-write=cache process.ts markdown $< $@
 
 $(OUTPUT_FILES_POSTS): out/posts/%.html: cache/posts/%.metadata.json cache/posts/%.content.html content/site.json | $(OUTPUT_DIRECTORIES)
@@ -52,20 +62,16 @@ $(OUTPUT_FILES_VERBATIM): out/%: content/% | $(OUTPUT_DIRECTORIES)
 #-----------------------------------------------------------
 # Build "commands" (phony targets)
 
-# Build
-.PHONY: build
-build: $(OUTPUT_FILES) $(OUTPUT_DIRECTORIES)
-
-# Remove extraneous files from "out/"
+# Remove extraneous files from "cache/" and "out/"
 .PHONY: tidy
 tidy:
-ifneq ($(strip $(OUTPUT_FILES_EXTRANEOUS)),)
-	rm $(OUTPUT_FILES_EXTRANEOUS)
+ifneq ($(strip $(OUTPUT_FILES_EXTRANEOUS) $(INTERMEDIATE_FILES_EXTRANEOUS)),)
+	rm -f $(OUTPUT_FILES_EXTRANEOUS)  $(INTERMEDIATE_FILES_EXTRANEOUS)
 endif
 
-# Build and remove extraneous files
-.PHONY: build-clean
-build-clean: tidy build
+# Build (note: "tidy" is implicitly run first)
+.PHONY: build
+build: $(OUTPUT_FILES)
 
 # Delete "cache/" and "out/"
 .PHONY: clean
