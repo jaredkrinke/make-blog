@@ -12,6 +12,11 @@ function join(...paths: string[]): string {
 	return paths.join("/");
 }
 
+function writeTextFileAsync(path: string, contents: string): Promise<void> {
+	console.log(`Generating: "${path}"...`);
+	return Deno.writeTextFile(path, contents);
+}
+
 async function enumerateFiles(directoryName: string, pattern: RegExp): Promise<string[]> {
     const filePaths: string[] = [];
     for await (const dirEntry of Deno.readDir(directoryName)) {
@@ -44,8 +49,8 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 
 		metadata.pathFromRoot = pathFromRoot;
 
-		await Deno.writeTextFile(pathOutputMetadata, JSON.stringify(metadata));
-		await Deno.writeTextFile(pathOutputContent, content);
+		await writeTextFileAsync(pathOutputMetadata, JSON.stringify(metadata));
+		await writeTextFileAsync(pathOutputContent, content);
 	},
 
 	markdown: async (paths) => {
@@ -65,7 +70,7 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 
 		// Transform Markdown to HTML
 		const output = marked(input);
-		await Deno.writeTextFile(pathOutput, output);
+		await writeTextFileAsync(pathOutput, output);
 	},
 
 	index: async (paths) => {
@@ -82,7 +87,7 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 		// Order by descending date
 		index.sort((b, a) => (a.date < b.date) ? -1 : ((a.date > b.date) ? 1 : 0));
 
-		await Deno.writeTextFile(pathOutput, JSON.stringify(index));
+		await writeTextFileAsync(pathOutput, JSON.stringify(index));
 	},
 
 	"template-post": async (paths) => {
@@ -101,7 +106,7 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 
 		const template = templates["post"];
 		const output = template(postHtml, metadata);
-		await Deno.writeTextFile(pathOutput, output);
+		await writeTextFileAsync(pathOutput, output);
 	},
 
 	"template-indexes": async (paths) => {
@@ -141,7 +146,7 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 					tagsAll,
 				};
 
-				await Deno.writeTextFile(join(pathRoot, "archive.html"), templates["archive"]({}, metadata));
+				await writeTextFileAsync(join(pathRoot, "archive.html"), templates["archive"]({}, metadata));
 			})(),
 
 			// Index/home page
@@ -156,8 +161,27 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 					tagsTop,
 				};
 
-				await Deno.writeTextFile(join(pathRoot, "index.html"), templates["index"]({}, metadata));
+				await writeTextFileAsync(join(pathRoot, "index.html"), templates["index"]({}, metadata));
 			})(),
+
+			// Tag index pages
+			...tagsAll.map(tag => (async () => {
+				const metadata = {
+					site: siteMetadata,
+					pathToRoot: "../",
+					collections: {
+						postsRecent: index.slice(0, 5),
+					},
+					tagsAll,
+					term: tag,
+					postsWithTag: tagIndex[tag],
+					isTagIndex: true,
+				};
+
+				const directoryPath = join(pathRoot, "posts", tag);
+				await Deno.mkdir(directoryPath, { recursive: true });
+				await writeTextFileAsync(join(directoryPath, "index.html"), templates["tagIndex"]({}, metadata));
+			})()),
 		]);
 	},
 } as const;

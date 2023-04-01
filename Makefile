@@ -34,9 +34,10 @@ OUTPUT_DIRECTORIES := $(patsubst content/%,out/%,$(INPUT_DIRECTORIES))
 
 OUTPUT_FILES_POSTS := $(addsuffix .html,$(basename $(patsubst content/%,out/%,$(INPUT_FILES_POSTS))))
 OUTPUT_FILES_VERBATIM := $(patsubst content/%,out/%,$(INPUT_FILES_VERBATIM))
+OUTPUT_FILES_TAG_INDEXES := $(addsuffix /index.html,$(INPUT_DIRECTORIES_POSTS))
 OUTPUT_FILES_FIXED := out/archive.html out/index.html
 
-OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM) $(OUTPUT_FILES_FIXED)
+OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM) $(OUTPUT_FILES_FIXED) $(OUTPUT_FILES_TAG_INDEXES)
 OUTPUT_FILES_EXTRANEOUS := $(filter-out $(OUTPUT_FILES),$(shell mkdir -p out && find out -type f))
 
 # Tidy up "cache/" and "out/" before building anything (note the shell hacks above create those directories, and this next one to delete unexpected files)
@@ -65,8 +66,8 @@ $(OUTPUT_FILES_POSTS): out/posts/%.html: cache/posts/%.metadata.json cache/posts
 cache/posts/index.json: $(INPUT_DIRECTORIES_POSTS) $(INPUT_FILES_POSTS)
 	deno run --allow-read=cache --allow-write=cache process.ts index cache/posts $@
 
-# Generate home page, indexes, archive
-out/archive.html out/index.html &: $(INTERMEDIATE_FILES_INDEX) content/site.json
+# Generate home page, indexes, archive (note: this also generates indexes for keywords that don't exist as a separate category directory)
+out/archive.html out/index.html $(OUTPUT_FILES_TAG_INDEXES) &: $(INTERMEDIATE_FILES_INDEX) content/site.json
 	deno run --allow-read=content,cache --allow-write=out process.ts template-indexes content/site.json $(INTERMEDIATE_FILES_INDEX) out
 
 # Copy verbatim (and use order-only prerequisites to ensure directories exist first)
