@@ -121,9 +121,16 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 			}
 		}
 
+		const tagsAll = Object.keys(tagIndex).sort((a, b) => (a < b ? -1 : 1));
+		const tagsTop = Object.keys(tagIndex).sort((a, b) => {
+			const postsA = tagIndex[a];
+			const postsB = tagIndex[b];
+			return (postsB.length - postsA.length) || (postsB[0].date!.getDate() - postsA[0].date!.getDate());
+		}).slice(0, 4);
+
 		await Promise.all([
+			// Post archive
 			(async () => {
-				// Post archive
 				const metadata = {
 					site: siteMetadata,
 					isRoot: false,
@@ -131,10 +138,25 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 					collections: {
 						posts: index,
 					},
-					tagsAll: Object.keys(tagIndex).sort((a, b) => (a < b ? -1 : 1)),
+					tagsAll,
 				};
 
 				await Deno.writeTextFile(join(pathRoot, "archive.html"), templates["archive"]({}, metadata));
+			})(),
+
+			// Index/home page
+			(async () => {
+				const metadata = {
+					site: siteMetadata,
+					pathToRoot: "",
+					collections: {
+						postsRecent: index.slice(0, 5),
+					},
+					tagsAll,
+					tagsTop,
+				};
+
+				await Deno.writeTextFile(join(pathRoot, "index.html"), templates["index"]({}, metadata));
 			})(),
 		]);
 	},
