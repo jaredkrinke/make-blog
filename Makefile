@@ -13,7 +13,6 @@ INPUT_DIRECTORIES := $(filter-out content,$(shell find content -type d))
 
 # Separate input files for processing
 INPUT_FILES_SITE_JSON := $(filter content/site.json,$(INPUT_FILES))
-#INPUT_FILES_MARKDOWN := $(filter %.md,$(INPUT_FILES)) # TODO
 INPUT_FILES_POSTS := $(filter content/posts/%.md,$(INPUT_FILES))
 INPUT_FILES_VERBATIM := $(filter-out $(INPUT_FILES_SITE_JSON) $(INPUT_FILES_POSTS),$(INPUT_FILES))
 
@@ -23,8 +22,7 @@ INTERMEDIATE_DIRECTORIES := $(patsubst content/%,cache/%,$(INPUT_DIRECTORIES))
 # Replace "content/" with "out/"
 OUTPUT_FILES_POSTS := $(addsuffix .html,$(basename $(patsubst content/%,out/%,$(INPUT_FILES_POSTS))))
 OUTPUT_FILES_VERBATIM := $(patsubst content/%,out/%,$(INPUT_FILES_VERBATIM))
-# TODO: CSS, 404, archive, tag indexes
-OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM) #TODO: out/index.html
+OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM)
 OUTPUT_DIRECTORIES := $(patsubst content/%,out/%,$(INPUT_DIRECTORIES))
 
 # Extraneous files already present in "out/"
@@ -44,15 +42,8 @@ cache/posts/%.metadata.json cache/posts/%.content.md &: content/posts/%.md | $(I
 cache/posts/%.content.html: cache/posts/%.content.md
 	deno run --allow-read=cache --allow-write=cache process.ts markdown $< $@
 
-# cache/index.db.json: cache/posts
-# 	find cache/posts -type f > $@
-
 $(OUTPUT_FILES_POSTS): out/posts/%.html: cache/posts/%.metadata.json cache/posts/%.content.html content/site.json | $(OUTPUT_DIRECTORIES)
 	deno run --allow-read=content,cache --allow-write=out process.ts template-post content/site.json cache/posts/$*.metadata.json cache/posts/$*.content.html $@
-
-# Generate indexes
-# out/index.html: cache/index.db.json
-# 	cat $< > $@
 
 # Copy verbatim (and use order-only prerequisites to ensure directories exist first)
 $(OUTPUT_FILES_VERBATIM): out/%: content/% | $(OUTPUT_DIRECTORIES)
@@ -62,12 +53,10 @@ $(OUTPUT_FILES_VERBATIM): out/%: content/% | $(OUTPUT_DIRECTORIES)
 # Build "commands" (phony targets)
 
 # Build
-# TODO: Probably need to always tidy first to avoid aggregating zombie items...
 .PHONY: build
 build: $(OUTPUT_FILES) $(OUTPUT_DIRECTORIES)
 
 # Remove extraneous files from "out/"
-# TODO: Consider tidying "cache/" as well
 .PHONY: tidy
 tidy:
 ifneq ($(strip $(OUTPUT_FILES_EXTRANEOUS)),)
