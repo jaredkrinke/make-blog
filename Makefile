@@ -16,12 +16,17 @@ INPUT_FILES_SITE_JSON := $(filter content/site.json,$(INPUT_FILES))
 INPUT_FILES_POSTS := $(filter content/posts/%.md,$(INPUT_FILES))
 INPUT_FILES_VERBATIM := $(filter-out $(INPUT_FILES_SITE_JSON) $(INPUT_FILES_POSTS),$(INPUT_FILES))
 
+INPUT_POST_DIRECTORIES := $(sort $(dir $(INPUT_FILES_POSTS)))
+
 # Intermediate results (under "cache/")
 INTERMEDIATE_DIRECTORIES := $(patsubst content/%,cache/%,$(INPUT_DIRECTORIES))
 
 INTERMEDIATE_FILES_POST_METADATA := $(patsubst content/posts/%.md,cache/posts/%.metadata.json,$(INPUT_FILES_POSTS))
 INTERMEDIATE_FILES_POST_CONTENT := $(patsubst content/posts/%.md,cache/posts/%.content.md,$(INPUT_FILES_POSTS))
 INTERMEDIATE_FILES_POST_HTML := $(patsubst content/posts/%.md,cache/posts/%.content.html,$(INPUT_FILES_POSTS))
+# TODO: How to handle tag indexes? Categories are based on path, but tags can appear in the front matter of any post (in any category)...
+INTERMEDIATE_FILES_INDEXES := cache/recent.index.json cache/archive.index.json
+INTERMEDIATE_FILES_ARCHIVE := $(addsuffix index.json,$(INPUT_DIRECTORIES))
 
 INTERMEDIATE_FILES := $(INTERMEDIATE_FILES_POST_METADATA) $(INTERMEDIATE_FILES_POST_CONTENT) $(INTERMEDIATE_FILES_POST_HTML)
 INTERMEDIATE_FILES_EXTRANEOUS := $(filter-out $(INTERMEDIATE_FILES),$(shell mkdir -p cache && find cache -type f))
