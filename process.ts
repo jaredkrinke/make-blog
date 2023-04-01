@@ -4,8 +4,25 @@ import { parse } from "https://deno.land/std@0.178.0/encoding/yaml.ts";
 import { marked, Renderer } from "./goldsmith/plugins/markdown/deps/marked.esm.js";
 import { templates } from "./md2blog/templates.ts";
 
-function replaceLink(link: string) {
+function replaceLink(link: string): string {
     return link.replace(/^([^/][^:]*)\.md(#[^#]+)?$/, "$1.html$2")
+}
+
+function join(...paths: string[]): string {
+	return paths.join("/");
+}
+
+async function enumerateFiles(directoryName: string, pattern: RegExp): Promise<string[]> {
+    const filePaths: string[] = [];
+    for await (const dirEntry of Deno.readDir(directoryName)) {
+        const path = join(directoryName, dirEntry.name);
+        if (dirEntry.isFile && pattern.test(path)) {
+            filePaths.push(path);
+        } else if (dirEntry.isDirectory) {
+            filePaths.push(...(await enumerateFiles(path, pattern)));
+        }
+    }
+    return filePaths;
 }
 
 const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
@@ -51,6 +68,23 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 		await Deno.writeTextFile(pathOutput, output);
 	},
 
+	index: async (paths) => {
+		const [pathCache, pathOutput] = paths;
+		const filePaths = await enumerateFiles(pathCache, /\.metadata.json$/);
+		const fileContents = await Promise.all(filePaths.map(path => Deno.readTextFile(path)));
+
+		const prefix = `${pathCache}/`;
+		const index: any[] = [];
+		for (let i = 0; i < filePaths.length; i++) {
+			index.push(JSON.parse(fileContents[i]));
+		}
+
+		// Order by descending date
+		index.sort((b, a) => (a.date < b.date) ? -1 : ((a.date > b.date) ? 1 : 0));
+
+		await Deno.writeTextFile(pathOutput, JSON.stringify(index));
+	},
+
 	"template-post": async (paths) => {
 		const [pathSiteJson, pathPostMetadata, pathPostHtml, pathOutput] = paths;
 		const siteMetadata = JSON.parse(await Deno.readTextFile(pathSiteJson));
@@ -68,6 +102,41 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 		const template = templates["post"];
 		const output = template(postHtml, metadata);
 		await Deno.writeTextFile(pathOutput, output);
+	},
+
+	"template-indexes": async (paths) => {
+		const [pathSiteJson, pathIndex, pathRoot] = paths;
+		// TODO: Could be read in parallel here, and elsewhere
+		const siteMetadata = JSON.parse(await Deno.readTextFile(pathSiteJson));
+		const index = JSON.parse(await Deno.readTextFile(pathIndex)).map(p => ({
+			...p,
+			date: new Date(p["date"]),
+		}));
+
+		const tagIndex = {};
+		for (const post of index) {
+			for (const tag of post.tags) {
+				const list = tagIndex[tag] ?? [];
+				tagIndex[tag] = [...list, post];
+			}
+		}
+
+		await Promise.all([
+			(async () => {
+				// Post archive
+				const metadata = {
+					site: siteMetadata,
+					isRoot: false,
+					pathToRoot: "",
+					collections: {
+						posts: index,
+					},
+					tagsAll: Object.keys(tagIndex).sort((a, b) => (a < b ? -1 : 1)),
+				};
+
+				await Deno.writeTextFile(join(pathRoot, "archive.html"), templates["archive"]({}, metadata));
+			})(),
+		]);
 	},
 } as const;
 
