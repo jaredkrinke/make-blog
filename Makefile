@@ -43,6 +43,8 @@ OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM) $(OUTPUT_FILES_FI
 # Note the following flawed hack: tag index pages might be added by a keyword that doesn't map to a category directory,
 # so leave tag index pages alone here. This will fail if a tag is removed, along with an associated post because the
 # tag index page will be left in place, but the post will no longer exist.
+#
+# Potential solution: have the indexing script clean up those files.
 
 OUTPUT_FILES_EXTRANEOUS := $(filter-out $(OUTPUT_FILES) out/posts/%/index.html,$(shell mkdir -p out && find out -type f))
 
