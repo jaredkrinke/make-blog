@@ -35,14 +35,17 @@ OUTPUT_FILES_VERBATIM := $(patsubst content/%,out/%,$(INPUT_FILES_VERBATIM))
 OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM)
 OUTPUT_FILES_EXTRANEOUS := $(filter-out $(OUTPUT_FILES),$(shell mkdir -p out && find out -type f))
 
+# Tidy up "cache/" and "out/" before building anything (note the shell hacks above create those directories, and this next one deletes unexpected files)
+TIDY_RESULT := $(shell rm -f $(OUTPUT_FILES_EXTRANEOUS) $(INTERMEDIATE_FILES_EXTRANEOUS))
+
 #-----------------------------------------------------------
 # Build rules
 
 # Rules to recreate "content/" directory structure under "cache/" and "out/"
-$(OUTPUT_DIRECTORIES): tidy
+$(OUTPUT_DIRECTORIES):
 	mkdir -p $@
 
-$(INTERMEDIATE_DIRECTORIES): tidy
+$(INTERMEDIATE_DIRECTORIES):
 	mkdir -p $@
 
 # Parse and process posts
@@ -62,14 +65,7 @@ $(OUTPUT_FILES_VERBATIM): out/%: content/% | $(OUTPUT_DIRECTORIES)
 #-----------------------------------------------------------
 # Build "commands" (phony targets)
 
-# Remove extraneous files from "cache/" and "out/"
-.PHONY: tidy
-tidy:
-ifneq ($(strip $(OUTPUT_FILES_EXTRANEOUS) $(INTERMEDIATE_FILES_EXTRANEOUS)),)
-	rm -f $(OUTPUT_FILES_EXTRANEOUS)  $(INTERMEDIATE_FILES_EXTRANEOUS)
-endif
-
-# Build (note: "tidy" is implicitly run first)
+# Build
 .PHONY: build
 build: $(OUTPUT_FILES)
 
