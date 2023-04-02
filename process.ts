@@ -184,14 +184,14 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 				const metadata = {
 					site: siteMetadata,
 					isRoot: false,
-					pathToRoot: "",
+					pathToRoot: "../",
 					collections: {
 						posts: index,
 					},
 					tagsAll,
 				};
 
-				await writeTextFileAsync(join(pathRoot, "archive.html"), templates["archive"]({}, metadata));
+				await writeTextFileAsync(join(pathRoot, "posts", "index.html"), templates["archive"]({}, metadata));
 			})(),
 
 			// Index/home page
