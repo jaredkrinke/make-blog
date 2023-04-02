@@ -8,8 +8,8 @@
 # File enumeration
 
 # Use "find" to enumerate all directories and files under "content/" (excluding "content/" itself)
-INPUT_FILES := $(shell find content -type f -not -name '.*')
-INPUT_DIRECTORIES := $(filter-out content,$(shell find content -type d))
+INPUT_FILES := $(shell find content -follow -type f -not -name '.*')
+INPUT_DIRECTORIES := $(filter-out content,$(shell find content -follow -type d))
 
 # Separate input files for processing
 INPUT_FILES_SITE_JSON := $(filter content/site.json,$(INPUT_FILES))
@@ -75,7 +75,7 @@ $(INTERMEDIATE_FILES_POST_HTML): cache/posts/%.content.html: cache/posts/%.conte
 $(OUTPUT_FILES_POSTS): out/posts/%.html: cache/posts/%.metadata.json cache/posts/%.content.html cache/site.json | $(OUTPUT_DIRECTORIES)
 	deno run --allow-read=content,cache --allow-write=out process.ts template-post cache/site.json cache/posts/$*.metadata.json cache/posts/$*.content.html $@
 
-cache/posts/index.json: $(INPUT_DIRECTORIES_POSTS) $(INPUT_FILES_POSTS)
+cache/posts/index.json: $(INPUT_DIRECTORIES_POSTS) $(INPUT_FILES_POSTS) | $(INTERMEDIATE_DIRECTORIES)
 	deno run --allow-read=cache --allow-write=cache process.ts index cache/posts $@
 
 # Generate home page, indexes, archive (note: this also generates indexes for keywords that don't exist as a separate category directory)
