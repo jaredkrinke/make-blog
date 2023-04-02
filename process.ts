@@ -5,7 +5,7 @@ import { marked, Renderer } from "./goldsmith/plugins/markdown/deps/marked.esm.j
 import { templates } from "./md2blog/templates.ts";
 
 function replaceLink(link: string): string {
-    return link.replace(/^([^/][^:]*)\.md(#[^#]+)?$/, "$1.html$2")
+	return link.replace(/^([^/][^:]*)\.md(#[^#]+)?$/, "$1.html$2")
 }
 
 function join(...paths: string[]): string {
@@ -18,19 +18,52 @@ function writeTextFileAsync(path: string, contents: string): Promise<void> {
 }
 
 async function enumerateFiles(directoryName: string, pattern: RegExp): Promise<string[]> {
-    const filePaths: string[] = [];
-    for await (const dirEntry of Deno.readDir(directoryName)) {
-        const path = join(directoryName, dirEntry.name);
-        if (dirEntry.isFile && pattern.test(path)) {
-            filePaths.push(path);
-        } else if (dirEntry.isDirectory) {
-            filePaths.push(...(await enumerateFiles(path, pattern)));
-        }
-    }
-    return filePaths;
+	const filePaths: string[] = [];
+	for await (const dirEntry of Deno.readDir(directoryName)) {
+		const path = join(directoryName, dirEntry.name);
+		if (dirEntry.isFile && pattern.test(path)) {
+			filePaths.push(path);
+		} else if (dirEntry.isDirectory) {
+			filePaths.push(...(await enumerateFiles(path, pattern)));
+		}
+	}
+	return filePaths;
 }
 
 const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
+	"site-metadata": async (paths) => {
+		// Set header defaults
+		const [pathInput, pathOutput] = paths;
+		const site = JSON.parse(await Deno.readTextFile(pathInput));
+		const text = site.header?.text ?? site.description;
+		// let links = site.header?.links;
+		// if (!links) {
+		//	 links = {};
+		//	 for (const file of metadata.collections!.nonPosts) {
+		//		 const pathFromRoot = file.pathFromRoot!;
+		//		 if (pathFromRoot !== "index.html") {
+		//			 const name = capitalize(
+		//				 pathFromRoot
+		//					 .replace(/\.[^.]*$/, "")
+		//					 .replace("-", " ")
+		//			 );
+		//			 links[name] = pathFromRoot;
+		//		 }
+		//	 }
+		// }
+
+		// for (const [name, link] of Object.entries(links)) {
+		//	 links[name] = replaceLink(link);
+		// }
+
+		site.header = {
+			text,
+			// links,
+		};
+
+		writeTextFileAsync(pathOutput, JSON.stringify(site));
+	},
+
 	// Separate and parse YAML front matter
 	frontmatter: async (paths) => {
 		const frontMatterPattern = /^---\r?\n(.*?)\r?\n---(\r?\n|$)/ms;
@@ -168,11 +201,12 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 			...tagsAll.map(tag => (async () => {
 				const metadata = {
 					site: siteMetadata,
-					pathToRoot: "../",
+					pathToRoot: "../../",
 					collections: {
 						postsRecent: index.slice(0, 5),
 					},
 					tagsAll,
+					tag,
 					term: tag,
 					postsWithTag: tagIndex[tag],
 					isTagIndex: true,
