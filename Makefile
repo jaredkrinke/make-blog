@@ -64,19 +64,19 @@ $(INTERMEDIATE_DIRECTORIES):
 
 # Parse and process posts
 cache/site.json: content/site.json | $(INTERMEDIATE_DIRECTORIES)
-	deno run --allow-read=content --allow-write=cache process.ts site-metadata $< $@
+	deno run --allow-read=content --allow-write=cache site-metadata.ts $< $@
 
 cache/posts/%.metadata.json cache/posts/%.content.md &: content/posts/%.md | $(INTERMEDIATE_DIRECTORIES)
-	deno run --allow-read=content --allow-write=cache process.ts frontmatter $< posts/$*.html cache/posts/$*.metadata.json cache/posts/$*.content.md
+	deno run --allow-read=content --allow-write=cache front-matter.ts $< posts/$*.html cache/posts/$*.metadata.json cache/posts/$*.content.md
 
 $(INTERMEDIATE_FILES_POST_HTML): cache/posts/%.content.html: cache/posts/%.content.md
-	deno run --allow-read=cache --allow-write=cache process.ts markdown $< $@
+	deno run --allow-read=cache --allow-write=cache markdown.ts $< $@
 
 $(OUTPUT_FILES_POSTS): out/posts/%.html: cache/posts/%.metadata.json cache/posts/%.content.html cache/site.json | $(OUTPUT_DIRECTORIES)
 	deno run --allow-read=content,cache --allow-write=out process.ts template-post cache/site.json cache/posts/$*.metadata.json cache/posts/$*.content.html $@
 
-cache/posts/index.json: $(INPUT_DIRECTORIES_POSTS) $(INPUT_FILES_POSTS) | $(INTERMEDIATE_DIRECTORIES)
-	deno run --allow-read=cache --allow-write=cache process.ts index cache/posts $@
+cache/posts/index.json: $(INTERMEDIATE_FILES_POST_METADATA) | $(INTERMEDIATE_DIRECTORIES)
+	deno run --allow-read=cache --allow-write=cache index.ts cache/posts $@
 
 # Generate home page, indexes, archive (note: this also generates indexes for keywords that don't exist as a separate category directory)
 out/posts/index.html out/index.html $(OUTPUT_FILES_TAG_INDEXES) &: $(INTERMEDIATE_FILES_INDEX) cache/site.json
