@@ -4,6 +4,7 @@ import { parse } from "https://deno.land/std@0.178.0/encoding/yaml.ts";
 import highlightJS from "./md2blog/deps/highlightjs-11.3.1.js";
 import { marked, Renderer } from "./goldsmith/plugins/markdown/deps/marked.esm.js";
 import { generateCSS, templates } from "./md2blog/templates.ts";
+import { goldsmithFeed } from "./goldsmith/plugins/feed/mod.ts";
 
 function replaceLink(link: string): string {
 	return link.replace(/^([^/][^:]*)\.md(#[^#]+)?$/, "$1.html$2")
@@ -151,6 +152,44 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 		const [pathSiteJson, pathOutput] = paths;
 		const siteMetadata = JSON.parse(await Deno.readTextFile(pathSiteJson));
 		await writeTextFileAsync(pathOutput, generateCSS(siteMetadata?.colors ?? {}));
+	},
+
+	"template-feed": async (paths) => {
+		const [pathCache, pathSiteJson, pathIndex, pathOutput] = paths;
+		const site = JSON.parse(await Deno.readTextFile(pathSiteJson));
+		const posts = JSON.parse(await Deno.readTextFile(pathIndex)).map(p => ({
+			...p,
+			date: new Date(p["date"]),
+		})).slice(0, 5);
+
+		// Map to Goldsmith data model
+		const textEncoder = new TextEncoder();
+		const textDecoder = new TextDecoder();
+		const fileContents = await Promise.all(posts.map(p => Deno.readTextFile(join(pathCache, p.pathFromRoot.replace(/.html$/, ".content.html")))));
+		const files = Object.fromEntries(posts.map((p, index) => [ p.pathFromRoot,
+			{
+				...p,
+				data: textEncoder.encode(fileContents[index]),
+			},
+		]));
+
+		const metadata = {
+			site,
+			posts: Object.values(files),
+		};
+
+		const goldsmith = {
+			metadata: () => metadata,
+			encodeUTF8: str => textEncoder.encode(str),
+			decodeUTF8: bin => textDecoder.decode(bin),
+		};
+
+		await (goldsmithFeed({
+			path: "feed.xml",
+			getCollection: (metadata) => metadata["posts"],
+		})(files, goldsmith));
+
+		await writeTextFileAsync(pathOutput, textDecoder.decode(files["feed.xml"].data));
 	},
 
 	"template-post": async (paths) => {

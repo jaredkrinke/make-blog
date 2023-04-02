@@ -37,7 +37,7 @@ OUTPUT_DIRECTORIES_POSTS := $(patsubst content/%,out/%,$(INPUT_DIRECTORIES_POSTS
 OUTPUT_FILES_POSTS := $(addsuffix .html,$(basename $(patsubst content/%,out/%,$(INPUT_FILES_POSTS))))
 OUTPUT_FILES_VERBATIM := $(patsubst content/%,out/%,$(INPUT_FILES_VERBATIM))
 OUTPUT_FILES_TAG_INDEXES := $(addsuffix index.html,$(OUTPUT_DIRECTORIES_POSTS))
-OUTPUT_FILES_FIXED := out/posts/index.html out/index.html out/404.html out/css/style.css
+OUTPUT_FILES_FIXED := out/posts/index.html out/index.html out/404.html out/css/style.css out/feed.xml
 
 OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM) $(OUTPUT_FILES_FIXED) $(OUTPUT_FILES_TAG_INDEXES)
 
@@ -81,6 +81,9 @@ cache/posts/index.json: $(INPUT_DIRECTORIES_POSTS) $(INPUT_FILES_POSTS)
 # Generate home page, indexes, archive (note: this also generates indexes for keywords that don't exist as a separate category directory)
 out/posts/index.html out/index.html $(OUTPUT_FILES_TAG_INDEXES) &: $(INTERMEDIATE_FILES_INDEX) cache/site.json
 	deno run --allow-read=content,cache --allow-write=out process.ts template-indexes cache/site.json $(INTERMEDIATE_FILES_INDEX) out
+
+out/feed.xml: cache/site.json cache/posts/index.json
+	deno run --allow-read=cache --allow-write=out process.ts template-feed cache cache/site.json cache/posts/index.json $@
 
 out/404.html: cache/site.json | $(OUTPUT_DIRECTORIES)
 	deno run --allow-read=cache --allow-write=out process.ts template-404 cache/site.json $@
