@@ -31,13 +31,13 @@ INTERMEDIATE_FILES := $(INTERMEDIATE_FILES_SITE_JSON) $(INTERMEDIATE_FILES_POST_
 INTERMEDIATE_FILES_EXTRANEOUS := $(filter-out $(INTERMEDIATE_FILES),$(shell mkdir -p cache && find cache -type f))
 
 # Output (under "out/")
-OUTPUT_DIRECTORIES := $(patsubst content/%,out/%,$(INPUT_DIRECTORIES))
+OUTPUT_DIRECTORIES := out/css $(patsubst content/%,out/%,$(INPUT_DIRECTORIES))
 OUTPUT_DIRECTORIES_POSTS := $(patsubst content/%,out/%,$(INPUT_DIRECTORIES_POSTS))
 
 OUTPUT_FILES_POSTS := $(addsuffix .html,$(basename $(patsubst content/%,out/%,$(INPUT_FILES_POSTS))))
 OUTPUT_FILES_VERBATIM := $(patsubst content/%,out/%,$(INPUT_FILES_VERBATIM))
 OUTPUT_FILES_TAG_INDEXES := $(addsuffix index.html,$(OUTPUT_DIRECTORIES_POSTS))
-OUTPUT_FILES_FIXED := out/posts/index.html out/index.html
+OUTPUT_FILES_FIXED := out/posts/index.html out/index.html out/404.html out/css/style.css
 
 OUTPUT_FILES := $(OUTPUT_FILES_POSTS) $(OUTPUT_FILES_VERBATIM) $(OUTPUT_FILES_FIXED) $(OUTPUT_FILES_TAG_INDEXES)
 
@@ -81,6 +81,12 @@ cache/posts/index.json: $(INPUT_DIRECTORIES_POSTS) $(INPUT_FILES_POSTS)
 # Generate home page, indexes, archive (note: this also generates indexes for keywords that don't exist as a separate category directory)
 out/posts/index.html out/index.html $(OUTPUT_FILES_TAG_INDEXES) &: $(INTERMEDIATE_FILES_INDEX) cache/site.json
 	deno run --allow-read=content,cache --allow-write=out process.ts template-indexes cache/site.json $(INTERMEDIATE_FILES_INDEX) out
+
+out/404.html: cache/site.json | $(OUTPUT_DIRECTORIES)
+	deno run --allow-read=cache --allow-write=out process.ts template-404 cache/site.json $@
+
+out/css/style.css: cache/site.json | $(OUTPUT_DIRECTORIES)
+	deno run --allow-read=cache --allow-write=out process.ts template-css cache/site.json $@
 
 # Copy verbatim (and use order-only prerequisites to ensure directories exist first)
 $(OUTPUT_FILES_VERBATIM): out/%: content/% | $(OUTPUT_DIRECTORIES)

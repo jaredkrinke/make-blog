@@ -3,7 +3,7 @@
 import { parse } from "https://deno.land/std@0.178.0/encoding/yaml.ts";
 import highlightJS from "./md2blog/deps/highlightjs-11.3.1.js";
 import { marked, Renderer } from "./goldsmith/plugins/markdown/deps/marked.esm.js";
-import { templates } from "./md2blog/templates.ts";
+import { generateCSS, templates } from "./md2blog/templates.ts";
 
 function replaceLink(link: string): string {
 	return link.replace(/^([^/][^:]*)\.md(#[^#]+)?$/, "$1.html$2")
@@ -133,6 +133,24 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 		index.sort((b, a) => (a.date < b.date) ? -1 : ((a.date > b.date) ? 1 : 0));
 
 		await writeTextFileAsync(pathOutput, JSON.stringify(index));
+	},
+
+	"template-404": async (paths) => {
+		const [pathSiteJson, pathOutput] = paths;
+		const siteMetadata = JSON.parse(await Deno.readTextFile(pathSiteJson));
+
+		const metadata = {
+			site: siteMetadata,
+			pathToRoot: "",
+		};
+
+		await writeTextFileAsync(pathOutput, templates["404"]("", metadata));
+	},
+
+	"template-css": async (paths) => {
+		const [pathSiteJson, pathOutput] = paths;
+		const siteMetadata = JSON.parse(await Deno.readTextFile(pathSiteJson));
+		await writeTextFileAsync(pathOutput, generateCSS(siteMetadata?.colors ?? {}));
 	},
 
 	"template-post": async (paths) => {
