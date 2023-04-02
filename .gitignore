@@ -1,4 +1,7 @@
 cache/
-content/
-out/
+content
+out*
+old_*
 *.swp
+*.sh
+*.txt
