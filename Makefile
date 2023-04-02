@@ -73,23 +73,23 @@ $(INTERMEDIATE_FILES_POST_HTML): cache/posts/%.content.html: cache/posts/%.conte
 	deno run --allow-read=cache --allow-write=cache markdown.ts $< $@
 
 $(OUTPUT_FILES_POSTS): out/posts/%.html: cache/posts/%.metadata.json cache/posts/%.content.html cache/site.json | $(OUTPUT_DIRECTORIES)
-	deno run --allow-read=content,cache --allow-write=out process.ts template-post cache/site.json cache/posts/$*.metadata.json cache/posts/$*.content.html $@
+	deno run --allow-read=content,cache --allow-write=out template-post.ts cache/site.json cache/posts/$*.metadata.json cache/posts/$*.content.html $@
 
 cache/posts/index.json: $(INTERMEDIATE_FILES_POST_METADATA) | $(INTERMEDIATE_DIRECTORIES)
 	deno run --allow-read=cache --allow-write=cache index.ts cache/posts $@
 
 # Generate home page, indexes, archive (note: this also generates indexes for keywords that don't exist as a separate category directory)
 out/posts/index.html out/index.html $(OUTPUT_FILES_TAG_INDEXES) &: $(INTERMEDIATE_FILES_INDEX) cache/site.json
-	deno run --allow-read=content,cache --allow-write=out process.ts template-indexes cache/site.json $(INTERMEDIATE_FILES_INDEX) out
+	deno run --allow-read=content,cache --allow-write=out template-indexes.ts cache/site.json $(INTERMEDIATE_FILES_INDEX) out
 
 out/feed.xml: cache/site.json cache/posts/index.json
-	deno run --allow-read=cache --allow-write=out process.ts template-feed cache cache/site.json cache/posts/index.json $@
+	deno run --allow-read=cache --allow-write=out template-feed.ts cache cache/site.json cache/posts/index.json $@
 
 out/404.html: cache/site.json | $(OUTPUT_DIRECTORIES)
-	deno run --allow-read=cache --allow-write=out process.ts template-404 cache/site.json $@
+	deno run --allow-read=cache --allow-write=out template-404.ts cache/site.json $@
 
 out/css/style.css: cache/site.json | $(OUTPUT_DIRECTORIES)
-	deno run --allow-read=cache --allow-write=out process.ts template-css cache/site.json $@
+	deno run --allow-read=cache --allow-write=out template-css.ts cache/site.json $@
 
 # Copy verbatim (and use order-only prerequisites to ensure directories exist first)
 $(OUTPUT_FILES_VERBATIM): out/%: content/% | $(OUTPUT_DIRECTORIES)
