@@ -8,7 +8,7 @@
 # File enumeration
 
 # Use "find" to enumerate all directories and files under "content/" (excluding "content/" itself)
-INPUT_FILES := $(shell find content -type f)
+INPUT_FILES := $(shell find content -type f -not -name '.*')
 INPUT_DIRECTORIES := $(filter-out content,$(shell find content -type d))
 
 # Separate input files for processing
