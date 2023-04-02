@@ -82,7 +82,7 @@ cache/posts/index.json: $(INTERMEDIATE_FILES_POST_METADATA) | $(INTERMEDIATE_DIR
 out/posts/index.html out/index.html $(OUTPUT_FILES_TAG_INDEXES) &: $(INTERMEDIATE_FILES_INDEX) cache/site.json
 	deno run --allow-read=content,cache --allow-write=out template-indexes.ts cache/site.json $(INTERMEDIATE_FILES_INDEX) out
 
-out/feed.xml: cache/site.json cache/posts/index.json
+out/feed.xml: cache/site.json cache/posts/index.json $(INTERMEDIATE_FILES_POST_HTML)
 	deno run --allow-read=cache --allow-write=out template-feed.ts cache cache/site.json cache/posts/index.json $@
 
 out/404.html: cache/site.json | $(OUTPUT_DIRECTORIES)
