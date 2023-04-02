@@ -1,6 +1,7 @@
 // TODO: Performance: split into separate modules or use a persistent server process, if needed
 
 import { parse } from "https://deno.land/std@0.178.0/encoding/yaml.ts";
+import highlightJS from "./md2blog/deps/highlightjs-11.3.1.js";
 import { marked, Renderer } from "./goldsmith/plugins/markdown/deps/marked.esm.js";
 import { templates } from "./md2blog/templates.ts";
 
@@ -97,6 +98,17 @@ const processors: { [command: string]: (paths: string[]) => Promise<void> } = {
 			return baseLink.call(this, replaceLink(href), title, text);
 		};
 		marked.use({ renderer });
+
+		// Syntax highlighting
+		marked.use({
+			highlight: (code, language) => {
+				if (language && highlightJS.getLanguage(language)) {
+					return highlightJS.highlight(code, { language }).value;
+				} else {
+					return highlightJS.highlightAuto(code).value;
+				}
+			},
+		});
 
 
 		// TODO: Syntax highlighting for code blocks
