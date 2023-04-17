@@ -67,23 +67,23 @@ cache/site.json: content/site.json | $(INTERMEDIATE_DIRECTORIES)
 	deno run --allow-read=content --allow-write=cache site-metadata.ts $< $@
 
 cache/posts/%.metadata.json cache/posts/%.content.md &: content/posts/%.md | $(INTERMEDIATE_DIRECTORIES)
-	deno run --allow-read=content --allow-write=cache front-matter.ts $< posts/$*.html cache/posts/$*.metadata.json cache/posts/$*.content.md
+	../leano/leano front-matter.js $< posts/$*.html cache/posts/$*.metadata.json cache/posts/$*.content.md
 
 $(INTERMEDIATE_FILES_POST_HTML): cache/posts/%.content.html: cache/posts/%.content.md
 	deno run --allow-read=cache --allow-write=cache markdown.ts $< $@
 
 $(OUTPUT_FILES_POSTS): out/posts/%.html: cache/posts/%.metadata.json cache/posts/%.content.html cache/site.json | $(OUTPUT_DIRECTORIES)
-	deno run --allow-read=content,cache --allow-write=out template-post.ts cache/site.json cache/posts/$*.metadata.json cache/posts/$*.content.html $@
+	../leano/leano template-post.js cache/site.json cache/posts/$*.metadata.json cache/posts/$*.content.html $@
 
 cache/posts/index.json: $(INTERMEDIATE_FILES_POST_METADATA) | $(INTERMEDIATE_DIRECTORIES)
-	deno run --allow-read=cache --allow-write=cache index.ts cache/posts $@
+	../leano/leano index.js cache/posts $@
 
 # Generate home page, indexes, archive (note: this also generates indexes for keywords that don't exist as a separate category directory)
 out/posts/index.html out/index.html $(OUTPUT_FILES_TAG_INDEXES) &: $(INTERMEDIATE_FILES_INDEX) cache/site.json
-	deno run --allow-read=content,cache --allow-write=out template-indexes.ts cache/site.json $(INTERMEDIATE_FILES_INDEX) out
+	../leano/leano template-indexes.js cache/site.json $(INTERMEDIATE_FILES_INDEX) out
 
 out/feed.xml: cache/site.json cache/posts/index.json $(INTERMEDIATE_FILES_POST_HTML)
-	deno run --allow-read=cache --allow-write=out template-feed.ts cache cache/site.json cache/posts/index.json $@
+	../leano/leano template-feed.js cache cache/site.json cache/posts/index.json $@
 
 out/404.html: cache/site.json | $(OUTPUT_DIRECTORIES)
 	deno run --allow-read=cache --allow-write=out template-404.ts cache/site.json $@
