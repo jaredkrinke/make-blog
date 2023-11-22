@@ -10,7 +10,7 @@ const metadata = (hasFrontMatter ? parse(matches[1]) : {}) as Record<string, any
 const content = hasFrontMatter ? text.slice(matches[0].length) : text;
 
 // Add post category as an implicit tag
-const pathComponents = pathInput.split("/");
+const pathComponents = pathFromRoot.split("/");
 if (pathComponents.length >= 3 && pathComponents[pathComponents.length - 3] === "posts") {
 	metadata.tags = [pathComponents[pathComponents.length - 2]].concat((metadata?.keywords ?? []));
 }
